@@ -1,6 +1,14 @@
 <?= $this->extend('admin/layout') ?>
 <?= $this->section('content') ?>
-
+<div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">💬 Conversas WhatsApp</h5>
+    <div>
+        <button class="btn btn-sm btn-outline-primary me-2" onclick="syncConversas()">
+            <i class="fas fa-sync-alt"></i> Sincronizar
+        </button>
+        <span class="badge bg-primary"><?= $totalConversas ?> Conversas</span>
+    </div>
+</div>
 <div class="row">
     <!-- Coluna da Esquerda - Lista de Conversas -->
     <div class="col-md-5">

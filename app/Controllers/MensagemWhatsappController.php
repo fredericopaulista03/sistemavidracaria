@@ -31,15 +31,13 @@ class MensagemWhatsappController extends BaseController
 
     public function getConversa($numero)
     {
-        // Busca mensagens em tempo real
+        // Busca mensagens em tempo real e sincroniza
         $realtimeMessages = $this->whatsappModel->getRealtimeMessages($numero);
         
-        // Se não encontrou mensagens em tempo real, busca do banco
-        if (empty($realtimeMessages)) {
-            $realtimeMessages = $this->whatsappModel->getConversaByNumero($numero);
-        }
-
-        return $this->response->setJSON($realtimeMessages);
+        return $this->response->setJSON([
+            'success' => true,
+            'messages' => $realtimeMessages
+        ]);
     }
 
     public function sendMessage()
@@ -49,18 +47,7 @@ class MensagemWhatsappController extends BaseController
 
         $result = $this->whatsappModel->sendMessage($numero, $mensagem);
 
-        if ($result['success']) {
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Mensagem enviada com sucesso',
-                'message_id' => $result['message_id']
-            ]);
-        }
-
-        return $this->response->setJSON([
-            'success' => false,
-            'error' => $result['error']
-        ]);
+        return $this->response->setJSON($result);
     }
 
     public function syncConversas()
@@ -73,6 +60,12 @@ class MensagemWhatsappController extends BaseController
     public function checkConnection()
     {
         $result = $this->whatsappModel->checkConnection();
+        return $this->response->setJSON($result);
+    }
+
+    public function getChats()
+    {
+        $result = $this->whatsappModel->getChatsFromApi();
         return $this->response->setJSON($result);
     }
 }
