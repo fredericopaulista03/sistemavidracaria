@@ -82,48 +82,22 @@ class MensagemWhatsappController extends BaseController
 /**
  * Sincronização mínima para teste
  */
-public function syncTest(): array
+public function syncTest()
 {
     try {
-        // Busca apenas os primeiros 5 chats
-        $chatsResult = $this->evolutionApi->getAllChats();
+        log_message('debug', 'syncTest method called');
+        $result = $this->whatsappModel->syncTest();
         
-        if (!$chatsResult['success']) {
-            return $chatsResult;
-        }
-
-        $chats = array_slice($chatsResult['data'], 0, 5);
-        $syncedCount = 0;
-
-        foreach ($chats as $chat) {
-            $chatId = $chat['id'] ?? '';
-            $numero = $this->extractNumberFromChatId($chatId);
-            
-            if (!$numero) continue;
-
-            // Busca apenas as últimas 5 mensagens de cada chat
-            $messagesResult = $this->evolutionApi->getChatMessages($numero, 5);
-            
-            if ($messagesResult['success'] && is_array($messagesResult['data'])) {
-                foreach ($messagesResult['data'] as $message) {
-                    if ($this->syncMessage($message)) {
-                        $syncedCount++;
-                    }
-                }
-            }
-        }
-
-        return [
-            'success' => true,
-            'synced' => $syncedCount,
-            'message' => "Sincronização teste: {$syncedCount} mensagens de " . count($chats) . " chats"
-        ];
-
+        log_message('debug', 'Sync test result: ' . print_r($result, true));
+        return $this->response->setJSON($result);
+        
     } catch (\Exception $e) {
-        return [
+        log_message('error', 'Exception in syncTest: ' . $e->getMessage());
+        return $this->response->setJSON([
             'success' => false,
-            'error' => $e->getMessage()
-        ];
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
     }
 }
 }
