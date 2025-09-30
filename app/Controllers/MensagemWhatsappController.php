@@ -71,4 +71,11 @@ class MensagemWhatsappController extends BaseController
         $result = $this->whatsappModel->getChatsFromApi();
         return $this->response->setJSON($result);
     }
+    public function testConnection()
+{
+    $evolutionApi = new \App\Services\EvolutionApiService();
+    $result = $evolutionApi->testConnection();
+    
+    return $this->response->setJSON($result);
+}
 }

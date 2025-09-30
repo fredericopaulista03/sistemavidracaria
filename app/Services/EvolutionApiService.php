@@ -10,14 +10,17 @@ class EvolutionApiService
     protected $client;
     protected $baseUrl;
     protected $apiKey;
-    protected $instanceId;
+    protected $instanceName;
 
     public function __construct()
     {
         $this->client = Services::curlrequest();
-        $this->baseUrl = getenv('EVOLUTION_API_BASE_URL') ?? 'http://localhost:8080';
-        $this->apiKey = getenv('EVOLUTION_API_KEY') ?? '';
-        $this->instanceId = getenv('EVOLUTION_API_INSTANCE_ID') ?? '';
+        $this->baseUrl = getenv('EVOLUTION_API_BASE_URL') ?: 'http://localhost:8080';
+        $this->apiKey = getenv('EVOLUTION_API_KEY') ?: 'sua-api-key-aqui';
+        $this->instanceName = getenv('EVOLUTION_API_INSTANCE_NAME') ?: 'instance';
+        
+        // Remove barras finais da URL base
+        $this->baseUrl = rtrim($this->baseUrl, '/');
     }
 
     /**
@@ -33,7 +36,7 @@ class EvolutionApiService
      */
     public function getConnectionState()
     {
-        return $this->request('GET', "/instance/connectionState/{$this->instanceId}");
+        return $this->request('GET', "/instance/connectionState/{$this->instanceName}");
     }
 
     /**
@@ -47,21 +50,7 @@ class EvolutionApiService
             'delay' => $delay ? 1200 : 100
         ];
 
-        return $this->request('POST', "/message/sendText/{$this->instanceId}", $data);
-    }
-
-    /**
-     * Send media message
-     */
-    public function sendMediaMessage(string $number, string $mediaUrl, string $caption = '')
-    {
-        $data = [
-            'number' => $this->formatNumber($number),
-            'media' => $mediaUrl,
-            'caption' => $caption
-        ];
-
-        return $this->request('POST', "/message/sendMedia/{$this->instanceId}", $data);
+        return $this->request('POST', "/message/sendText/{$this->instanceName}", $data);
     }
 
     /**
@@ -69,7 +58,7 @@ class EvolutionApiService
      */
     public function getAllChats()
     {
-        return $this->request('GET', "/chat/findAllChats/{$this->instanceId}");
+        return $this->request('GET', "/chat/findAllChats/{$this->instanceName}");
     }
 
     /**
@@ -78,7 +67,7 @@ class EvolutionApiService
     public function getChatMessages(string $number, int $limit = 50)
     {
         $number = $this->formatNumber($number);
-        return $this->request('GET', "/message/findAllMessages/{$this->instanceId}?limit={$limit}&chatId={$number}@c.us");
+        return $this->request('GET', "/message/findAllMessages/{$this->instanceName}?limit={$limit}&chatId={$number}@c.us");
     }
 
     /**
@@ -86,17 +75,7 @@ class EvolutionApiService
      */
     public function getAllMessages(int $limit = 100)
     {
-        return $this->request('GET', "/message/findAllMessages/{$this->instanceId}?limit={$limit}");
-    }
-
-    /**
-     * Mark message as read
-     */
-    public function markAsRead(string $messageId)
-    {
-        return $this->request('PUT', "/message/markAsRead/{$this->instanceId}", [
-            'messageId' => $messageId
-        ]);
+        return $this->request('GET', "/message/findAllMessages/{$this->instanceName}?limit={$limit}");
     }
 
     /**
@@ -105,7 +84,7 @@ class EvolutionApiService
     public function checkNumber(string $number)
     {
         $number = $this->formatNumber($number);
-        return $this->request('POST', "/chat/checkNumber/{$this->instanceId}", [
+        return $this->request('POST', "/chat/checkNumber/{$this->instanceName}", [
             'number' => $number
         ]);
     }
@@ -116,7 +95,7 @@ class EvolutionApiService
     public function getProfilePicture(string $number)
     {
         $number = $this->formatNumber($number);
-        return $this->request('GET', "/chat/getProfilePicture/{$this->instanceId}?number={$number}");
+        return $this->request('GET', "/chat/getProfilePicture/{$this->instanceName}?number={$number}");
     }
 
     /**
@@ -124,7 +103,7 @@ class EvolutionApiService
      */
     public function startInstance()
     {
-        return $this->request('POST', "/instance/start/{$this->instanceId}");
+        return $this->request('POST', "/instance/start/{$this->instanceName}");
     }
 
     /**
@@ -132,7 +111,7 @@ class EvolutionApiService
      */
     public function restartInstance()
     {
-        return $this->request('POST', "/instance/restart/{$this->instanceId}");
+        return $this->request('POST', "/instance/restart/{$this->instanceName}");
     }
 
     /**
@@ -140,7 +119,7 @@ class EvolutionApiService
      */
     public function logoutInstance()
     {
-        return $this->request('DELETE', "/instance/logout/{$this->instanceId}");
+        return $this->request('DELETE', "/instance/logout/{$this->instanceName}");
     }
 
     /**
@@ -148,7 +127,18 @@ class EvolutionApiService
      */
     public function deleteInstance()
     {
-        return $this->request('DELETE', "/instance/delete/{$this->instanceId}");
+        return $this->request('DELETE', "/instance/delete/{$this->instanceName}");
+    }
+
+    /**
+     * Create instance
+     */
+    public function createInstance(string $instanceName, string $qrcode = 'true')
+    {
+        return $this->request('POST', "/instance/create", [
+            'instanceName' => $instanceName,
+            'qrcode' => $qrcode
+        ]);
     }
 
     /**
@@ -157,23 +147,31 @@ class EvolutionApiService
     private function request(string $method, string $endpoint, array $data = [])
     {
         try {
+            $url = $this->baseUrl . $endpoint;
+            
             $options = [
                 'headers' => [
                     'apikey' => $this->apiKey,
                     'Content-Type' => 'application/json',
                 ],
                 'timeout' => 30,
-                'http_errors' => false
+                'http_errors' => false,
+                'verify' => false // Desativa verificação SSL para desenvolvimento
             ];
 
             if (!empty($data)) {
                 $options['json'] = $data;
+                $options['headers']['Content-Type'] = 'application/json';
             }
 
-            $response = $this->client->request($method, $this->baseUrl . $endpoint, $options);
+            log_message('debug', "Evolution API Request: {$method} {$url}");
+
+            $response = $this->client->request($method, $url, $options);
             
             $body = $response->getBody();
             $statusCode = $response->getStatusCode();
+
+            log_message('debug', "Evolution API Response: {$statusCode} - {$body}");
 
             $result = json_decode($body, true) ?? $body;
 
@@ -181,10 +179,11 @@ class EvolutionApiService
                 'success' => $statusCode >= 200 && $statusCode < 300,
                 'status' => $statusCode,
                 'data' => $result,
-                'error' => $statusCode >= 400 ? $result : null
+                'error' => $statusCode >= 400 ? ($result['message'] ?? $result['error'] ?? 'Unknown error') : null
             ];
 
         } catch (\Exception $e) {
+            log_message('error', 'Evolution API Exception: ' . $e->getMessage());
             return [
                 'success' => false,
                 'status' => 500,
@@ -208,5 +207,26 @@ class EvolutionApiService
         }
         
         return $number;
+    }
+
+    /**
+     * Test API connection
+     */
+    public function testConnection(): array
+    {
+        $result = $this->getInstanceInfo();
+        
+        if ($result['success']) {
+            return [
+                'success' => true,
+                'message' => 'Conexão com Evolution API estabelecida com sucesso',
+                'instances' => $result['data']
+            ];
+        }
+        
+        return [
+            'success' => false,
+            'error' => 'Não foi possível conectar à Evolution API: ' . ($result['error'] ?? 'Unknown error')
+        ];
     }
 }
