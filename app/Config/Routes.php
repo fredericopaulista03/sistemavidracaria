@@ -36,12 +36,11 @@ $routes->group('vendas', function($routes) {
 });
 
 // WhatsApp
-$routes->group('whatsapp', function($routes) {
-    $routes->get('/', 'MensagemWhatsappController::conversas');
-    $routes->get('create', 'MensagemWhatsappController::create');
-    $routes->post('store', 'MensagemWhatsappController::store');
-    $routes->get('reenviar', 'MensagemWhatsappController::reenviarPendentes');
-});
+$routes->get('admin/whatsapp/conversas', 'MensagemWhatsappController::conversas');
+$routes->get('admin/whatsapp/conversa/(:num)', 'MensagemWhatsappController::getConversa/$1');
+$routes->post('admin/whatsapp/send', 'MensagemWhatsappController::sendMessage');
+$routes->post('admin/whatsapp/sync', 'MensagemWhatsappController::syncConversas');
+$routes->get('admin/whatsapp/connection', 'MensagemWhatsappController::checkConnection');
 
 $routes->get('clientes', 'ClienteController::index');
 $routes->get('clientes/create', 'ClienteController::create');
