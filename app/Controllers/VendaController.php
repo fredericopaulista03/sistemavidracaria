@@ -26,7 +26,8 @@ class VendaController extends BaseController
         $clienteModel = new \App\Models\ClienteModel();
 
     $data['clientes'] = $clienteModel->findAll();
-        return view('admin/vendas/create');
+    
+        return view('admin/vendas/create', $data);
     }
 
    public function store()

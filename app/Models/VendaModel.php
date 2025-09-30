@@ -46,4 +46,15 @@ class VendaModel extends Model
                     ->groupBy('status')
                     ->findAll();
     }
+    /**
+ * Retorna vendas com o nome do cliente
+ */
+public function getVendasComClientes()
+{
+    return $this->select('vendas.*, clientes.nome as cliente_nome')
+                ->join('clientes', 'clientes.id = vendas.cliente_id')
+                ->orderBy('vendas.created_at', 'DESC')
+                ->findAll();
+}
+
 }
