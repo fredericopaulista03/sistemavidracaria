@@ -124,4 +124,12 @@ public function testEndpoints()
     return $this->response->setJSON($results);
 }
 
+public function debugInstance()
+{
+    $evolutionApi = new \App\Services\EvolutionApiService();
+    $result = $evolutionApi->debugInstance();
+    
+    return $this->response->setJSON($result);
+}
+
 }

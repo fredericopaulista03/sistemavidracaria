@@ -12,16 +12,30 @@ class EvolutionApiService
     protected $apiKey;
     protected $instanceName;
 
-    public function __construct()
-    {
-        $this->client = Services::curlrequest();
-        $this->baseUrl = getenv('EVOLUTION_API_BASE_URL') ?: 'http://localhost:8080';
-        $this->apiKey = getenv('EVOLUTION_API_KEY') ?: 'sua-api-key-aqui';
-        $this->instanceName = getenv('EVOLUTION_API_INSTANCE_NAME') ?: 'instance';
-        
-        // Remove barras finais da URL base
-        $this->baseUrl = rtrim($this->baseUrl, '/');
-    }
+    // No EvolutionApiService, adicione este método:
+public function debugInstance()
+{
+    $instances = $this->getInstanceInfo();
+    
+    log_message('debug', 'Instâncias disponíveis: ' . print_r($instances, true));
+    log_message('debug', 'Instância configurada: ' . $this->instanceName);
+    
+    return $instances;
+}
+
+// E atualize o construtor para log:
+public function __construct()
+{
+    $this->client = Services::curlrequest();
+    $this->baseUrl = getenv('EVOLUTION_API_BASE_URL') ?: 'http://localhost:8080';
+    $this->apiKey = getenv('EVOLUTION_API_KEY') ?: 'sua-api-key-aqui';
+    $this->instanceName = getenv('EVOLUTION_API_INSTANCE_NAME') ?: 'vidracariabh'; // Mudei para vidracariabh
+    
+    // Remove barras finais da URL base
+    $this->baseUrl = rtrim($this->baseUrl, '/');
+    
+    log_message('debug', "Evolution API Config - URL: {$this->baseUrl}, Instance: {$this->instanceName}");
+}
 
     /**
      * Get instance information
@@ -241,4 +255,5 @@ public function getConnectionState()
             'error' => 'Não foi possível conectar à Evolution API: ' . ($result['error'] ?? 'Unknown error')
         ];
     }
+    
 }

@@ -47,6 +47,7 @@ $routes->get('whatsapp/chats', 'MensagemWhatsappController::getChats');
 $routes->get('whatsapp/test', 'MensagemWhatsappController::testConnection');
 $routes->get('whatsapp/sync/test', 'MensagemWhatsappController::syncTest');
 $routes->get('whatsapp/test/endpoints', 'MensagemWhatsappController::testEndpoints');
+$routes->get('whatsapp/debug/instance', 'MensagemWhatsappController::debugInstance');
 
 $routes->get('clientes', 'ClienteController::index');
 $routes->get('clientes/create', 'ClienteController::create');
