@@ -36,7 +36,7 @@
         <div class="card">
             <div class="card-header">Vendas por Status</div>
             <div class="card-body">
-                <canvas id="chartVendas"></canvas>
+                <canvas id="chartVendas" height="300"></canvas>
             </div>
         </div>
     </div>
@@ -46,7 +46,7 @@
         <div class="card">
             <div class="card-header">Financeiro (Entradas x Saídas)</div>
             <div class="card-body">
-                <canvas id="chartFinanceiro"></canvas>
+                <canvas id="chartFinanceiro" height="300"></canvas>
             </div>
         </div>
     </div>
@@ -128,6 +128,10 @@ new Chart(ctxVendas, {
             data: <?= $vendasValues ?>,
             backgroundColor: ['#0d6efd', '#198754', '#dc3545']
         }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
     }
 });
 
@@ -142,6 +146,10 @@ new Chart(ctxFinanceiro, {
             data: <?= $financeiroValues ?>,
             backgroundColor: ['#198754', '#dc3545']
         }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
     }
 });
 </script>
