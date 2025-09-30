@@ -166,6 +166,54 @@ function carregarConversa(conversaId) {
         `;
     }, 1000);
 }
+// Função para sincronizar conversas
+function syncConversas() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
+    btn.disabled = true;
+
+    fetch('/whatsapp/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message || 'Conversas sincronizadas com sucesso!');
+                // Recarrega a página para mostrar os novos dados
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('error', data.error || 'Erro ao sincronizar conversas');
+            }
+        })
+        .catch(error => {
+            showAlert('error', 'Erro na sincronização: ' + error);
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+}
+
+// Função para mostrar alertas
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.querySelector('.container').prepend(alertDiv);
+
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
 </script>
 
 <?= $this->endSection() ?>
