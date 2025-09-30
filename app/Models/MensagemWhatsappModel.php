@@ -43,65 +43,88 @@ class MensagemWhatsappModel extends Model
     }
 
     /**
-     * Sincronizar conversas da Evolution API
-     */
-    public function syncConversas(): array
-    {
-        try {
-            // Primeiro, busca todos os chats
-            $chatsResult = $this->evolutionApi->getAllChats();
-            
-            if (!$chatsResult['success']) {
-                return [
-                    'success' => false, 
-                    'error' => 'Falha ao buscar chats: ' . ($chatsResult['error'] ?? 'Unknown error')
-                ];
-            }
-
-            $chats = $chatsResult['data'];
-            $syncedCount = 0;
-            $totalMessages = 0;
-
-            log_message('info', 'Iniciando sincronização de ' . count($chats) . ' chats');
-
-            foreach ($chats as $chat) {
-                // Extrai o número do chat ID
-                $numero = $this->extractNumberFromChatId($chat['id']);
-                
-                if (!$numero) continue;
-
-                // Busca mensagens do chat específico
-                $messagesResult = $this->evolutionApi->getChatMessages($numero, 100);
-                
-                if ($messagesResult['success'] && is_array($messagesResult['data'])) {
-                    foreach ($messagesResult['data'] as $message) {
-                        if ($this->syncMessage($message)) {
-                            $syncedCount++;
-                        }
-                        $totalMessages++;
-                    }
-                    log_message('info', "Chat {$numero}: " . count($messagesResult['data']) . " mensagens processadas");
-                } else {
-                    log_message('warning', "Falha ao buscar mensagens do chat: {$numero}");
-                }
-            }
-
-            return [
-                'success' => true, 
-                'synced' => $syncedCount,
-                'total_messages' => $totalMessages,
-                'total_chats' => count($chats),
-                'message' => "Sincronização concluída: {$syncedCount} novas mensagens de " . count($chats) . " chats"
-            ];
-
-        } catch (\Exception $e) {
-            log_message('error', 'Erro na sincronização: ' . $e->getMessage());
+ * Sincronizar conversas da Evolution API
+ */
+public function syncConversas(): array
+{
+    try {
+        // Primeiro, verifica a conexão
+        $connectionResult = $this->evolutionApi->getConnectionState();
+        
+        if (!$connectionResult['success']) {
             return [
                 'success' => false, 
-                'error' => $e->getMessage()
+                'error' => 'Instância não conectada: ' . ($connectionResult['error'] ?? 'Verifique o QR Code')
             ];
         }
+
+        log_message('info', 'Conexão com Evolution API verificada, iniciando sincronização...');
+
+        // Busca todos os chats
+        $chatsResult = $this->evolutionApi->getAllChats();
+        
+        if (!$chatsResult['success']) {
+            return [
+                'success' => false, 
+                'error' => 'Falha ao buscar chats: ' . ($chatsResult['error'] ?? 'Unknown error')
+            ];
+        }
+
+        $chats = $chatsResult['data'];
+        $syncedCount = 0;
+        $totalMessages = 0;
+
+        log_message('info', 'Encontrados ' . count($chats) . ' chats para sincronizar');
+
+        // Limita para os primeiros 10 chats para teste
+        $testChats = array_slice($chats, 0, 10);
+        
+        foreach ($testChats as $chat) {
+            $chatId = $chat['id'] ?? '';
+            
+            if (!$chatId) continue;
+
+            // Extrai o número do chat ID
+            $numero = $this->extractNumberFromChatId($chatId);
+            
+            if (!$numero) continue;
+
+            log_message('info', "Sincronizando chat: {$numero}");
+
+            // Busca mensagens do chat específico (limita para 20 mensagens por chat)
+            $messagesResult = $this->evolutionApi->getChatMessages($numero, 20);
+            
+            if ($messagesResult['success'] && is_array($messagesResult['data'])) {
+                $messageCount = count($messagesResult['data']);
+                log_message('info', "Chat {$numero}: {$messageCount} mensagens encontradas");
+                
+                foreach ($messagesResult['data'] as $message) {
+                    if ($this->syncMessage($message)) {
+                        $syncedCount++;
+                    }
+                    $totalMessages++;
+                }
+            } else {
+                log_message('warning', "Falha ao buscar mensagens do chat: {$numero} - " . ($messagesResult['error'] ?? ''));
+            }
+        }
+
+        return [
+            'success' => true, 
+            'synced' => $syncedCount,
+            'total_messages' => $totalMessages,
+            'total_chats' => count($chats),
+            'message' => "Sincronização concluída: {$syncedCount} novas mensagens de " . count($testChats) . " chats (total: " . count($chats) . " chats)"
+        ];
+
+    } catch (\Exception $e) {
+        log_message('error', 'Erro na sincronização: ' . $e->getMessage());
+        return [
+            'success' => false, 
+            'error' => $e->getMessage()
+        ];
     }
+}
 
     /**
      * Buscar chats diretamente da API
