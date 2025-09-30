@@ -138,7 +138,7 @@ public function getConversa($numero)
             'error' => 'Erro interno ao carregar conversa'
         ]);
     }
-}v
+}
 
     // No WhatsappWebhookController, adicione estes métodos:
 
