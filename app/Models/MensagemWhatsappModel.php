@@ -509,4 +509,87 @@ public function syncConversas(): array
 
         return $conversas;
     }
+    /**
+ * Sincronização mínima para teste
+ */
+public function syncTest(): array
+{
+    try {
+        log_message('info', '=== INICIANDO SYNC TEST ===');
+
+        // Teste básico - verificar conexão primeiro
+        $connection = $this->evolutionApi->getConnectionState();
+        log_message('info', 'Status da conexão: ' . print_r($connection, true));
+
+        if (!$connection['success']) {
+            return [
+                'success' => false,
+                'error' => 'Instância não conectada: ' . ($connection['error'] ?? 'Verifique o QR Code')
+            ];
+        }
+
+        // Buscar chats
+        log_message('info', 'Buscando chats...');
+        $chatsResult = $this->evolutionApi->getAllChats();
+        
+        if (!$chatsResult['success']) {
+            log_message('error', 'Erro ao buscar chats: ' . ($chatsResult['error'] ?? ''));
+            return [
+                'success' => false,
+                'error' => 'Falha ao buscar chats: ' . ($chatsResult['error'] ?? 'Unknown error')
+            ];
+        }
+
+        $chats = $chatsResult['data'];
+        log_message('info', 'Total de chats encontrados: ' . count($chats));
+
+        // Limitar para 3 chats para teste
+        $testChats = array_slice($chats, 0, 3);
+        $syncedCount = 0;
+
+        foreach ($testChats as $index => $chat) {
+            $chatId = $chat['id'] ?? '';
+            $numero = $this->extractNumberFromChatId($chatId);
+            
+            if (!$numero) {
+                log_message('warning', "Chat {$index}: ID inválido - " . $chatId);
+                continue;
+            }
+
+            log_message('info', "Processando chat {$index}: {$numero}");
+
+            // Buscar apenas 2 mensagens de cada chat para teste
+            $messagesResult = $this->evolutionApi->getChatMessages($numero, 2);
+            
+            if ($messagesResult['success'] && is_array($messagesResult['data'])) {
+                $messageCount = count($messagesResult['data']);
+                log_message('info', "Chat {$numero}: {$messageCount} mensagens encontradas");
+                
+                foreach ($messagesResult['data'] as $messageIndex => $message) {
+                    if ($this->syncMessage($message)) {
+                        $syncedCount++;
+                        log_message('info', "Mensagem {$messageIndex} sincronizada com sucesso");
+                    }
+                }
+            } else {
+                log_message('warning', "Falha no chat {$numero}: " . ($messagesResult['error'] ?? ''));
+            }
+        }
+
+        return [
+            'success' => true,
+            'synced' => $syncedCount,
+            'total_chats' => count($chats),
+            'tested_chats' => count($testChats),
+            'message' => "Sincronização teste concluída: {$syncedCount} mensagens de " . count($testChats) . " chats"
+        ];
+
+    } catch (\Exception $e) {
+        log_message('error', 'Exception no syncTest: ' . $e->getMessage());
+        return [
+            'success' => false,
+            'error' => $e->getMessage()
+        ];
+    }
+}
 }
