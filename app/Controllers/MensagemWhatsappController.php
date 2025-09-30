@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\MensagemWhatsappModel;
 
-class WhatsappController extends BaseController
+class MensagemWhatsappController extends BaseController
 {
     protected $whatsappModel;
 
