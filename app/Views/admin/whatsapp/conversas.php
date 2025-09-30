@@ -109,59 +109,21 @@
     max-height: 500px;
     overflow-y: auto;
 }
+
+.my-message {
+    text-align: right;
+}
+
+.other-message {
+    text-align: left;
+}
 </style>
 
 <script>
-// Função para sincronizar conversas
-function syncConversas() {
-    const btn = document.getElementById('syncBtn');
-    const originalText = btn.innerHTML;
-
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
-    btn.disabled = true;
-
-    fetch('<?= site_url('whatsapp/webhook/send') ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                numero: 'sync',
-                mensagem: 'sincronizar_conversas'
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erro na rede: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Resposta da sincronização:', data);
-
-            if (data.success) {
-                showAlert('success', data.message || 'Conversas sincronizadas com sucesso!');
-                // Recarrega a página após 2 segundos para mostrar os novos dados
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-            } else {
-                showAlert('error', data.error || 'Erro ao sincronizar conversas');
-            }
-        })
-        .catch(error => {
-            console.error('Erro na sincronização:', error);
-            showAlert('error', 'Erro na sincronização: ' + error.message);
-        })
-        .finally(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
-}
-
 // Função para selecionar conversa
 function selecionarConversa(numero) {
+    console.log('Selecionando conversa:', numero);
+
     // Remove a classe active de todos os itens
     document.querySelectorAll('.conversa-item').forEach(item => {
         item.classList.remove('active');
@@ -175,8 +137,6 @@ function selecionarConversa(numero) {
 }
 
 // Função para carregar conversa
-// Função para carregar conversa - VERSÃO COM DEBUG
-// Função para carregar conversa - VERSÃO CORRIGIDA
 function carregarConversa(numero) {
     const areaConversa = document.getElementById('area-conversa');
     areaConversa.innerHTML = `
@@ -189,6 +149,7 @@ function carregarConversa(numero) {
     `;
 
     const url = `<?= site_url('whatsapp/conversa/') ?>${encodeURIComponent(numero)}`;
+    console.log('URL da conversa:', url);
 
     fetch(url)
         .then(response => {
@@ -302,115 +263,18 @@ function formatDate(dateString) {
         return dateString;
     }
 }
-const areaConversa = document.getElementById('area-conversa');
-areaConversa.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border text-primary mb-3" role="status">
-                <span class="visually-hidden">Carregando...</span>
-            </div>
-            <p>Carregando conversa do número: ${numero}</p>
-        </div>
-    `;
 
-const url = `<?= site_url('whatsapp/conversa/') ?>${encodeURIComponent(numero)}`;
-console.log('URL da conversa:', url);
-
-fetch(url)
-    .then(response => {
-        console.log('Status da resposta:', response.status);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Dados recebidos:', data);
-
-        if (data.success && data.messages) {
-            if (data.messages.length > 0) {
-                areaConversa.innerHTML = `
-                    <div class="conversa-detalhes">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5>${data.messages[0].nome || numero}</h5>
-                            <span class="badge bg-success">Online</span>
-                        </div>
-                        
-                        <div class="mensagens-container" style="height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; background-color: #f8f9fa;">
-                            ${data.messages.map(msg => `
-                                <div class="message ${msg.from_me ? 'my-message' : 'other-message'} mb-2">
-                                    <div class="card ${msg.from_me ? 'bg-primary text-white' : 'bg-light'}">
-                                        <div class="card-body p-2">
-                                            <p class="card-text mb-1">${msg.mensagem}</p>
-                                            <small class="${msg.from_me ? 'text-white-50' : 'text-muted'}">
-                                                ${new Date(msg.created_at).toLocaleString()}
-                                                ${msg.from_me ? ' (Você)' : ''}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <div class="input-group mt-3">
-                            <input type="text" class="form-control" placeholder="Digite sua mensagem..." id="messageInput">
-                            <button class="btn btn-primary" type="button" onclick="enviarMensagem('${numero}')">
-                                <i class="fas fa-paper-plane"></i> Enviar
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                areaConversa.innerHTML = `
-                    <div class="conversa-detalhes">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5>${numero}</h5>
-                            <span class="badge bg-secondary">Offline</span>
-                        </div>
-                        
-                        <div class="text-center py-4 text-muted">
-                            <i class="fas fa-comments fa-3x mb-3"></i>
-                            <p>Nenhuma mensagem nesta conversa</p>
-                            <small>Envie uma mensagem para iniciar a conversa</small>
-                        </div>
-                        
-                        <div class="input-group mt-3">
-                            <input type="text" class="form-control" placeholder="Digite sua mensagem..." id="messageInput">
-                            <button class="btn btn-primary" type="button" onclick="enviarMensagem('${numero}')">
-                                <i class="fas fa-paper-plane"></i> Enviar
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
-        } else {
-            areaConversa.innerHTML = `
-                <div class="text-center text-danger">
-                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                    <p>Erro ao carregar conversa</p>
-                    <small>${data.error || 'Erro desconhecido'}</small>
-                </div>
-            `;
-        }
-    })
-    .catch(error => {
-        console.error('Erro detalhado ao carregar conversa:', error);
-        areaConversa.innerHTML = `
-            <div class="text-center text-danger">
-                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                <p>Erro ao carregar conversa</p>
-                <small>${error.message}</small>
-                <br>
-                <small>Verifique o console para mais detalhes (F12)</small>
-            </div>
-        `;
-    });
-}
 // Função para enviar mensagem
 function enviarMensagem(numero) {
     const input = document.getElementById('messageInput');
     const mensagem = input.value.trim();
 
-    if (!mensagem) return;
+    if (!mensagem) {
+        alert('Digite uma mensagem!');
+        return;
+    }
+
+    console.log('Enviando mensagem para:', numero, 'Texto:', mensagem);
 
     fetch('<?= site_url('whatsapp/webhook/send') ?>', {
             method: 'POST',
@@ -425,6 +289,7 @@ function enviarMensagem(numero) {
         })
         .then(response => response.json())
         .then(data => {
+            console.log('Resposta do envio:', data);
             if (data.success) {
                 input.value = '';
                 // Recarrega a conversa para mostrar a nova mensagem
@@ -435,7 +300,41 @@ function enviarMensagem(numero) {
             }
         })
         .catch(error => {
+            console.error('Erro ao enviar mensagem:', error);
             showAlert('error', 'Erro ao enviar mensagem: ' + error.message);
+        });
+}
+
+// Função para sincronizar conversas
+function syncConversas() {
+    const btn = document.getElementById('syncBtn');
+    const originalText = btn.innerHTML;
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
+    btn.disabled = true;
+
+    fetch('<?= site_url('whatsapp/test/webhook') ?>')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Resposta da sincronização:', data);
+
+            if (data.result && data.result.success) {
+                showAlert('success', data.message || 'Conversas sincronizadas com sucesso!');
+                // Recarrega a página após 2 segundos para mostrar os novos dados
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                showAlert('error', data.result?.error || data.error || 'Erro ao sincronizar conversas');
+            }
+        })
+        .catch(error => {
+            console.error('Erro na sincronização:', error);
+            showAlert('error', 'Erro na sincronização: ' + error.message);
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         });
 }
 
@@ -452,7 +351,10 @@ function showAlert(type, message) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
 
-    document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+    const container = document.querySelector('.container');
+    if (container) {
+        container.insertBefore(alertDiv, container.firstChild);
+    }
 
     setTimeout(() => {
         if (alertDiv.parentNode) {
@@ -462,19 +364,35 @@ function showAlert(type, message) {
 }
 
 // Busca em tempo real
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const items = document.querySelectorAll('.conversa-item');
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('.conversa-item');
 
-    items.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        if (text.includes(searchTerm)) {
-            item.style.display = 'block';
-        } else {
-            item.style.display = 'none';
-        }
-    });
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    console.log('WhatsApp conversas carregado! Todas as funções disponíveis.');
 });
+
+// Teste: Verifique se as funções estão disponíveis globalmente
+window.selecionarConversa = selecionarConversa;
+window.carregarConversa = carregarConversa;
+window.enviarMensagem = enviarMensagem;
+window.syncConversas = syncConversas;
+window.showAlert = showAlert;
+
+console.log('Funções JavaScript carregadas: selecionarConversa, carregarConversa, enviarMensagem, syncConversas');
 </script>
 
 <?= $this->endSection() ?>
