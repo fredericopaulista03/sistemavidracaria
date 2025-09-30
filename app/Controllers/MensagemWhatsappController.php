@@ -5,131 +5,186 @@ namespace App\Controllers;
 use App\Models\MensagemWhatsappModel;
 
 class MensagemWhatsappController extends BaseController
-{
-    protected $whatsappModel;
+{protected $whatsappModel;
 
     public function __construct()
     {
         $this->whatsappModel = new MensagemWhatsappModel();
     }
 
+    /**
+     * Webhook para receber mensagens
+     */
+    public function receive()
+    {
+        // Log do webhook recebido
+        $rawInput = file_get_contents('php://input');
+        $webhookData = json_decode($rawInput, true) ?? [];
+        
+        log_message('info', 'Webhook recebido: ' . print_r($webhookData, true));
+
+        // Verifica se é uma mensagem válida
+        if ($this->isValidMessage($webhookData)) {
+            $result = $this->whatsappModel->saveWebhookMessage($webhookData);
+            
+            if ($result['success']) {
+                log_message('info', 'Mensagem salva via webhook: ' . $result['message_id']);
+                
+                // Opcional: Processar mensagem recebida (IA, respostas automáticas, etc.)
+                $this->processReceivedMessage($webhookData);
+            } else {
+                log_message('error', 'Erro ao salvar webhook: ' . $result['error']);
+            }
+        }
+
+        return $this->response->setStatusCode(200)->setJSON(['status' => 'success']);
+    }
+
+    /**
+     * Enviar mensagem via webhook externo
+     */
+    public function send()
+    {
+        $numero = $this->request->getPost('numero');
+        $mensagem = $this->request->getPost('mensagem');
+        $webhookUrl = getenv('WHATSAPP_SEND_WEBHOOK') ?? 'https://seu-webhook-envio.com/send';
+
+        if (!$numero || !$mensagem) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'error' => 'Número e mensagem são obrigatórios'
+            ]);
+        }
+
+        $result = $this->whatsappModel->sendViaWebhook($numero, $mensagem, $webhookUrl);
+
+        return $this->response->setJSON($result);
+    }
+
+    /**
+     * Verificar se é uma mensagem válida
+     */
+    private function isValidMessage(array $data): bool
+    {
+        return isset($data['type']) && 
+               isset($data['from']) && 
+               in_array($data['type'], ['text', 'image', 'video', 'audio', 'document']);
+    }
+
+    /**
+     * Processar mensagem recebida (opcional)
+     */
+    private function processReceivedMessage(array $messageData)
+    {
+        // Exemplo: Resposta automática
+        if ($messageData['type'] === 'text' && !($messageData['fromMe'] ?? false)) {
+            $mensagem = strtolower($messageData['body'] ?? '');
+            
+            // Resposta automática para "ola" ou "oi"
+            if (strpos($mensagem, 'ola') !== false || strpos($mensagem, 'oi') !== false) {
+                $this->sendAutoReply(
+                    $messageData['from'],
+                    'Olá! Obrigado por entrar em contato. Em breve responderemos sua mensagem.'
+                );
+            }
+        }
+    }
+
+    /**
+     * Enviar resposta automática
+     */
+    private function sendAutoReply(string $to, string $message)
+    {
+        $webhookUrl = getenv('WHATSAPP_SEND_WEBHOOK') ?? 'https://seu-webhook-envio.com/send';
+        $numero = $this->whatsappModel->extractNumber($to);
+        
+        $this->whatsappModel->sendViaWebhook($numero, $message, $webhookUrl);
+    }
+
+    /**
+     * Listar conversas (para a interface)
+     */
     public function conversas()
     {
-        // Sincroniza conversas ao carregar a página
-        $syncResult = $this->whatsappModel->syncConversas();
-
         $data = [
             'totalConversas' => $this->whatsappModel->getTotalConversas(),
             'conversasAtivas' => $this->whatsappModel->getConversasAtivas(),
             'conversas' => $this->whatsappModel->getConversas(),
-            'connectionStatus' => $this->whatsappModel->checkConnection(),
-            'syncResult' => $syncResult
         ];
 
         return view('admin/whatsapp/conversas', $data);
     }
 
+    /**
+     * Buscar mensagens de uma conversa
+     */
     public function getConversa($numero)
     {
-        // Busca mensagens em tempo real e sincroniza
-        $realtimeMessages = $this->whatsappModel->getRealtimeMessages($numero);
-        
+        $mensagens = $this->whatsappModel->where('numero', $numero)
+                                        ->orderBy('created_at', 'ASC')
+                                        ->findAll();
+
         return $this->response->setJSON([
             'success' => true,
-            'messages' => $realtimeMessages
+            'messages' => $mensagens
         ]);
     }
 
-    public function sendMessage()
-    {
-        $numero = $this->request->getPost('numero');
-        $mensagem = $this->request->getPost('mensagem');
+    // No WhatsappWebhookController, adicione estes métodos:
 
-        $result = $this->whatsappModel->sendMessage($numero, $mensagem);
-
-        return $this->response->setJSON($result);
-    }
-
-    public function syncConversas()
-    {
-        $result = $this->whatsappModel->syncConversas();
-
-         // Log para debug
-        log_message('debug', 'Resultado da sincronização: ' . print_r($result, true));
-
-        return $this->response->setJSON($result);
-    }
-
-    public function checkConnection()
-    {
-        $result = $this->whatsappModel->checkConnection();
-        return $this->response->setJSON($result);
-    }
-
-    public function getChats()
-    {
-        $result = $this->whatsappModel->getChatsFromApi();
-        return $this->response->setJSON($result);
-    }
-    public function testConnection()
+/**
+ * Testar recebimento de webhook
+ */
+public function testWebhook()
 {
-    $evolutionApi = new \App\Services\EvolutionApiService();
-    $result = $evolutionApi->testConnection();
-    
-    return $this->response->setJSON($result);
+    // Dados de exemplo simulando uma mensagem recebida
+    $testData = [
+        'id' => 'test_' . time(),
+        'from' => '5531999999999@c.us',
+        'to' => '553191633453@c.us',
+        'body' => 'Esta é uma mensagem de teste via webhook',
+        'type' => 'text',
+        'fromMe' => false,
+        'chatId' => '5531999999999@c.us',
+        'timestamp' => time()
+    ];
+
+    $result = $this->whatsappModel->saveWebhookMessage($testData);
+
+    return $this->response->setJSON([
+        'test_data' => $testData,
+        'result' => $result,
+        'message' => $result['success'] ? 'Webhook testado com sucesso!' : 'Erro no webhook: ' . $result['error']
+    ]);
 }
 
 /**
- * Sincronização mínima para teste
+ * Testar envio de mensagem
  */
-public function syncTest()
+public function testSend()
 {
-    try {
-        log_message('debug', 'syncTest method called');
-        $result = $this->whatsappModel->syncTest();
-        
-        log_message('debug', 'Sync test result: ' . print_r($result, true));
-        return $this->response->setJSON($result);
-        
-    } catch (\Exception $e) {
-        log_message('error', 'Exception in syncTest: ' . $e->getMessage());
-        return $this->response->setJSON([
-            'success' => false,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-    }
-}
-public function testEndpoints()
-{
-    $evolutionApi = new \App\Services\EvolutionApiService();
-    
-    $results = [];
-    
-    // Teste 1: Connection State
-    $results['connection_state'] = $evolutionApi->getConnectionState();
-    
-    // Teste 2: Listar chats
-    $results['all_chats'] = $evolutionApi->getAllChats();
-    
-    // Teste 3: Se tiver chats, teste um específico
-    if ($results['all_chats']['success'] && !empty($results['all_chats']['data'])) {
-        $firstChat = $results['all_chats']['data'][0];
-        $numero = $evolutionApi->extractNumberFromChatId($firstChat['id'] ?? '');
-        if ($numero) {
-            $results['chat_messages'] = $evolutionApi->getChatMessages($numero, 1);
-        }
-    }
-    
-    return $this->response->setJSON($results);
+    $numero = '31999999999'; // Número de teste
+    $mensagem = 'Esta é uma mensagem de teste enviada via webhook';
+    $webhookUrl = getenv('WHATSAPP_SEND_WEBHOOK') ?? 'http://localhost:8080/message/sendText/vidracariabh';
+
+    $result = $this->whatsappModel->sendViaWebhook($numero, $mensagem, $webhookUrl);
+
+    return $this->response->setJSON([
+        'test_data' => [
+            'numero' => $numero,
+            'mensagem' => $mensagem,
+            'webhook_url' => $webhookUrl
+        ],
+        'result' => $result,
+        'message' => $result['success'] ? 'Mensagem enviada com sucesso!' : 'Erro no envio: ' . $result['error']
+    ]);
 }
 
-public function debugInstance()
+/**
+ * Testar webhook manualmente via formulário
+ */
+public function testManual()
 {
-    $evolutionApi = new \App\Services\EvolutionApiService();
-    $result = $evolutionApi->debugInstance();
-    
-    return $this->response->setJSON($result);
+    return view('admin/whatsapp/test_webhook');
 }
-
 }
