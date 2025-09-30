@@ -54,6 +54,9 @@ class MensagemWhatsappController extends BaseController
     {
         $result = $this->whatsappModel->syncConversas();
 
+         // Log para debug
+        log_message('debug', 'Resultado da sincronização: ' . print_r($result, true));
+
         return $this->response->setJSON($result);
     }
 
