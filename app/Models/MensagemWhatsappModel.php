@@ -239,6 +239,251 @@ class MensagemWhatsappModel extends Model
         }
     }
 
-    // Mantenha os outros métodos existentes (getTotalConversas, getConversas, etc.)
-    // ... [seus métodos anteriores aqui]
+    /**
+     * Total de conversas únicas
+     */
+    public function getTotalConversas(): int
+    {
+        return $this->distinct()
+                    ->select('numero')
+                    ->countAllResults();
+    }
+
+    /**
+     * Conversas aguardando resposta
+     */
+    public function getConversasAtivas(): int
+    {
+        return $this->distinct()
+                    ->select('numero')
+                    ->where('status', 'aguardando')
+                    ->orWhere('status', 'pending')
+                    ->countAllResults();
+    }
+
+    /**
+     * Lista de conversas com última mensagem
+     */
+    public function getConversas(): array
+    {
+        // Busca o último registro de cada número
+        $subquery = $this->db->table($this->table)
+            ->select('numero, MAX(created_at) as ultima_atualizacao')
+            ->groupBy('numero')
+            ->get()
+            ->getResultArray();
+
+        $conversas = [];
+        
+        foreach ($subquery as $row) {
+            // Busca a última mensagem de cada número
+            $ultimaMensagem = $this->where('numero', $row['numero'])
+                                  ->orderBy('created_at', 'DESC')
+                                  ->first();
+
+            if ($ultimaMensagem) {
+                // Conta mensagens não lidas
+                $nao_lidas = $this->where('numero', $row['numero'])
+                                 ->where('from_me', 0)
+                                 ->where('status', 'recebido')
+                                 ->countAllResults();
+
+                $conversas[] = (object)[
+                    'id' => $ultimaMensagem->id,
+                    'numero' => $ultimaMensagem->numero,
+                    'nome' => $this->formatarNome($ultimaMensagem->numero),
+                    'ultima_mensagem' => $this->truncarMensagem($ultimaMensagem->mensagem),
+                    'ultima_atualizacao' => $ultimaMensagem->created_at,
+                    'nao_lidas' => $nao_lidas,
+                    'status' => $ultimaMensagem->status
+                ];
+            }
+        }
+
+        // Ordena por data mais recente
+        usort($conversas, function($a, $b) {
+            return strtotime($b->ultima_atualizacao) - strtotime($a->ultima_atualizacao);
+        });
+
+        return $conversas;
+    }
+
+    /**
+     * Formatar número para nome
+     */
+    private function formatarNome(string $numero): string
+    {
+        // Remove caracteres não numéricos
+        $numeroLimpo = preg_replace('/\D/', '', $numero);
+        
+        // Se for número brasileiro, formata
+        if (strlen($numeroLimpo) === 11 || strlen($numeroLimpo) === 10) {
+            if (strlen($numeroLimpo) === 11) {
+                return 'Contato (' . substr($numeroLimpo, 0, 2) . ') ' . 
+                       substr($numeroLimpo, 2, 5) . '-' . 
+                       substr($numeroLimpo, 7);
+            } else {
+                return 'Contato (' . substr($numeroLimpo, 0, 2) . ') ' . 
+                       substr($numeroLimpo, 2, 4) . '-' . 
+                       substr($numeroLimpo, 6);
+            }
+        }
+        
+        return 'Contato ' . $numeroLimpo;
+    }
+
+    /**
+     * Truncar mensagem para preview
+     */
+    private function truncarMensagem(string $mensagem, int $length = 50): string
+    {
+        if (strlen($mensagem) <= $length) {
+            return $mensagem;
+        }
+        return substr($mensagem, 0, $length) . '...';
+    }
+
+    /**
+     * Buscar histórico de uma conversa
+     */
+    public function getConversaByNumero(string $numero): array
+    {
+        return $this->where('numero', $numero)
+                    ->orderBy('created_at', 'ASC')
+                    ->findAll();
+    }
+
+    /**
+     * Buscar mensagens em tempo real de um número
+     */
+    public function getRealtimeMessages(string $numero): array
+    {
+        $result = $this->evolutionApi->getChatMessages($numero);
+        
+        if ($result['success']) {
+            $messages = [];
+            foreach ($result['data'] as $message) {
+                $this->syncMessage($message);
+                $messages[] = $this->formatMessageForDisplay($message);
+            }
+            return $messages;
+        }
+
+        // Se falhar na API, busca do banco
+        return $this->getConversaByNumero($numero);
+    }
+
+    /**
+     * Formata mensagem para exibição
+     */
+    private function formatMessageForDisplay(array $message): array
+    {
+        return [
+            'id' => $message['key']['id'],
+            'numero' => $this->extractNumberFromChatId($message['key']['remoteJid']),
+            'mensagem' => $this->extractMessageText($message),
+            'type' => $this->getMessageType($message),
+            'from_me' => (bool)$message['key']['fromMe'],
+            'timestamp' => $message['messageTimestamp'],
+            'status' => $this->mapMessageStatus($message),
+            'formatted_time' => date('d/m/Y H:i', $message['messageTimestamp'])
+        ];
+    }
+
+    /**
+     * Enviar mensagem via Evolution API
+     */
+    public function sendMessage(string $numero, string $mensagem): array
+    {
+        $result = $this->evolutionApi->sendTextMessage($numero, $mensagem);
+
+        if ($result['success']) {
+            // Salva no banco de dados
+            $messageData = [
+                'numero' => $numero,
+                'mensagem' => $mensagem,
+                'provider_message_id' => $result['data']['key']['id'] ?? null,
+                'type' => 'text',
+                'from_me' => 1,
+                'status' => 'enviado',
+                'sent_at' => date('Y-m-d H:i:s')
+            ];
+
+            $this->insert($messageData);
+
+            return [
+                'success' => true, 
+                'message_id' => $this->getInsertID(),
+                'provider_message_id' => $result['data']['key']['id'] ?? null
+            ];
+        }
+
+        return [
+            'success' => false, 
+            'error' => $result['error'] ?? 'Erro desconhecido ao enviar mensagem'
+        ];
+    }
+
+    /**
+     * Verificar estado da conexão
+     */
+    public function checkConnection(): array
+    {
+        return $this->evolutionApi->getConnectionState();
+    }
+
+    /**
+     * Buscar mensagens de um número
+     */
+    public function getByNumero(string $numero): array
+    {
+        return $this->where('numero', $numero)
+                    ->orderBy('created_at', 'DESC')
+                    ->findAll();
+    }
+
+    /**
+     * Buscar mensagens não entregues
+     */
+    public function getPendentes(): array
+    {
+        return $this->where('status', 'enviado')->findAll();
+    }
+
+    /**
+     * Marcar mensagens como lidas
+     */
+    public function markAsRead(string $numero): bool
+    {
+        return $this->where('numero', $numero)
+                   ->where('from_me', 0)
+                   ->where('status', 'recebido')
+                   ->set(['status' => 'lida'])
+                   ->update();
+    }
+
+    /**
+     * Buscar conversas não lidas
+     */
+    public function getConversasNaoLidas(): array
+    {
+        $subquery = $this->db->table($this->table)
+            ->select('numero, COUNT(*) as nao_lidas')
+            ->where('from_me', 0)
+            ->where('status', 'recebido')
+            ->groupBy('numero')
+            ->get()
+            ->getResultArray();
+
+        $conversas = [];
+        foreach ($subquery as $row) {
+            $conversas[] = (object)[
+                'numero' => $row['numero'],
+                'nao_lidas' => $row['nao_lidas'],
+                'nome' => $this->formatarNome($row['numero'])
+            ];
+        }
+
+        return $conversas;
+    }
 }
