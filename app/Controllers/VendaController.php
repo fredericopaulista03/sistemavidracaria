@@ -18,12 +18,12 @@ class VendaController extends BaseController
     {
         $data['vendas'] = $this->vendaModel->findAll();
         $data['totais'] = $this->vendaModel->getTotaisPorStatus();
-        return view('vendas/index', $data);
+        return view('admin/vendas/index', $data);
     }
 
     public function create()
     {
-        return view('vendas/create');
+        return view('admin/vendas/create');
     }
 
     public function store()

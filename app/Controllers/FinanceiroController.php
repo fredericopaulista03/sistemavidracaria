@@ -18,12 +18,12 @@ class FinanceiroController extends BaseController
     {
         $data['lancamentos'] = $this->financeiroModel->findAll();
         $data['resumo'] = $this->financeiroModel->getResumo();
-        return view('financeiro/index', $data);
+        return view('admin/financeiro/index', $data);
     }
 
     public function create()
     {
-        return view('financeiro/create');
+        return view('admin/financeiro/create');
     }
 
     public function store()
