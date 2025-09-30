@@ -13,7 +13,64 @@
                     <span class="badge bg-primary"><?= $totalConversas ?> Conversas</span>
                 </div>
             </div>
+            <div class="card-body">
+                <!-- Estatísticas -->
+                <div class="row mb-4">
+                    <div class="col-6">
+                        <div class="text-center p-3 border rounded bg-light">
+                            <div class="h4 mb-1 text-primary"><?= $totalConversas ?></div>
+                            <small class="text-muted">Total</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-3 border rounded bg-light">
+                            <div class="h4 mb-1 text-warning"><?= $conversasAtivas ?></div>
+                            <small class="text-muted">Aguardando</small>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Barra de Busca -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control" placeholder="Buscar por nome ou telefone..."
+                            id="searchInput">
+                    </div>
+                </div>
+
+                <!-- Lista de Conversas -->
+                <div class="conversas-list" id="conversasList">
+                    <?php if (!empty($conversas)): ?>
+                    <?php foreach ($conversas as $conversa): ?>
+                    <div class="conversa-item p-3 border-bottom" style="cursor: pointer;"
+                        onclick="selecionarConversa('<?= $conversa->numero ?>')">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-bold"><?= esc($conversa->nome) ?></h6>
+                                <p class="mb-1 text-muted small"><?= esc($conversa->ultima_mensagem) ?></p>
+                                <small
+                                    class="text-muted"><?= date('d/m/Y H:i', strtotime($conversa->ultima_atualizacao)) ?></small>
+                            </div>
+                            <div class="ms-2">
+                                <?php if ($conversa->nao_lidas > 0): ?>
+                                <span class="badge bg-danger"><?= $conversa->nao_lidas ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    <?php else: ?>
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-comments fa-2x mb-2"></i>
+                        <p>Nenhuma conversa encontrada</p>
+                        <small>Clique em "Sincronizar" para buscar conversas</small>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -63,12 +120,16 @@ function syncConversas() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
     btn.disabled = true;
 
-    fetch('<?= site_url('whatsapp/sync') ?>', {
+    fetch('<?= site_url('whatsapp/webhook/send') ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
-            }
+            },
+            body: JSON.stringify({
+                numero: 'sync',
+                mensagem: 'sincronizar_conversas'
+            })
         })
         .then(response => {
             if (!response.ok) {
@@ -132,7 +193,7 @@ function carregarConversa(numero) {
                 areaConversa.innerHTML = `
                 <div class="conversa-detalhes">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5>${numero}</h5>
+                        <h5>${data.messages[0]?.nome || numero}</h5>
                         <span class="badge bg-success">Online</span>
                     </div>
                     
@@ -143,7 +204,7 @@ function carregarConversa(numero) {
                                     <div class="card-body p-2">
                                         <p class="card-text mb-1">${msg.mensagem}</p>
                                         <small class="${msg.from_me ? 'text-white-50' : 'text-muted'}">
-                                            ${msg.formatted_time || ''}
+                                            ${new Date(msg.created_at).toLocaleString()}
                                         </small>
                                     </div>
                                 </div>
@@ -187,7 +248,7 @@ function enviarMensagem(numero) {
 
     if (!mensagem) return;
 
-    fetch('<?= site_url('whatsapp/send') ?>', {
+    fetch('<?= site_url('whatsapp/webhook/send') ?>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -204,6 +265,7 @@ function enviarMensagem(numero) {
                 input.value = '';
                 // Recarrega a conversa para mostrar a nova mensagem
                 carregarConversa(numero);
+                showAlert('success', 'Mensagem enviada com sucesso!');
             } else {
                 showAlert('error', data.error || 'Erro ao enviar mensagem');
             }
