@@ -12,6 +12,7 @@
         <div class="container">
             <a class="navbar-brand" href="/">Sistema</a>
             <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="/clientes">Clientes</a></li>
                 <li class="nav-item"><a class="nav-link" href="/usuarios">Usuários</a></li>
                 <li class="nav-item"><a class="nav-link" href="/financeiro">Financeiro</a></li>
