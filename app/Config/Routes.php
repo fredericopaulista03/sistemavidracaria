@@ -35,19 +35,14 @@ $routes->group('vendas', function($routes) {
     $routes->get('delete/(:num)', 'VendaController::delete/$1');
 });
 
+// Webhooks WhatsApp
+$routes->post('whatsapp/webhook/receive', 'MensagemWhatsappController::receive');
+$routes->post('whatsapp/webhook/send', 'WhatsappWebhookController::send');
 
-// WhatsApp
+// Interface
 $routes->get('whatsapp', 'MensagemWhatsappController::conversas');
 $routes->get('whatsapp/conversas', 'MensagemWhatsappController::conversas');
-$routes->post('whatsapp/sync', 'MensagemWhatsappController::syncConversas');
 $routes->get('whatsapp/conversa/(:alphanum)', 'MensagemWhatsappController::getConversa/$1');
-$routes->post('whatsapp/send', 'MensagemWhatsappController::sendMessage');
-$routes->get('whatsapp/connection', 'MensagemWhatsappController::checkConnection');
-$routes->get('whatsapp/chats', 'MensagemWhatsappController::getChats');
-$routes->get('whatsapp/test', 'MensagemWhatsappController::testConnection');
-$routes->get('whatsapp/sync/test', 'MensagemWhatsappController::syncTest');
-$routes->get('whatsapp/test/endpoints', 'MensagemWhatsappController::testEndpoints');
-$routes->get('whatsapp/debug/instance', 'MensagemWhatsappController::debugInstance');
 
 $routes->get('clientes', 'ClienteController::index');
 $routes->get('clientes/create', 'ClienteController::create');
