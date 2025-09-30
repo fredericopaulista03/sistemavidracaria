@@ -34,10 +34,22 @@ class EvolutionApiService
     /**
      * Get connection state
      */
-    public function getConnectionState()
-    {
-        return $this->request('GET', "/instance/connectionState/{$this->instanceName}");
+   /**
+ * Get connection state - ENDPOINT CORRIGIDO
+ */
+public function getConnectionState()
+{
+    // Tente este endpoint primeiro (mais comum)
+    $result1 = $this->request('GET', "/instance/connectionState/{$this->instanceName}");
+    
+    if ($result1['success']) {
+        return $result1;
     }
+    
+    // Se falhar, tente endpoint alternativo
+    log_message('debug', 'Tentando endpoint alternativo para connection state...');
+    return $this->request('GET', "/instance/show/{$this->instanceName}");
+}
 
     /**
      * Send text message

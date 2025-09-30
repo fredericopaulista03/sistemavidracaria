@@ -100,4 +100,28 @@ public function syncTest()
         ]);
     }
 }
+public function testEndpoints()
+{
+    $evolutionApi = new \App\Services\EvolutionApiService();
+    
+    $results = [];
+    
+    // Teste 1: Connection State
+    $results['connection_state'] = $evolutionApi->getConnectionState();
+    
+    // Teste 2: Listar chats
+    $results['all_chats'] = $evolutionApi->getAllChats();
+    
+    // Teste 3: Se tiver chats, teste um específico
+    if ($results['all_chats']['success'] && !empty($results['all_chats']['data'])) {
+        $firstChat = $results['all_chats']['data'][0];
+        $numero = $evolutionApi->extractNumberFromChatId($firstChat['id'] ?? '');
+        if ($numero) {
+            $results['chat_messages'] = $evolutionApi->getChatMessages($numero, 1);
+        }
+    }
+    
+    return $this->response->setJSON($results);
+}
+
 }

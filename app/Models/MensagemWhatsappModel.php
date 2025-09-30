@@ -512,21 +512,16 @@ public function syncConversas(): array
     /**
  * Sincronização mínima para teste
  */
+/**
+ * Sincronização mínima para teste - VERSÃO CORRIGIDA
+ */
 public function syncTest(): array
 {
     try {
-        log_message('info', '=== INICIANDO SYNC TEST ===');
+        log_message('info', '=== INICIANDO SYNC TEST CORRIGIDO ===');
 
-        // Teste básico - verificar conexão primeiro
-        $connection = $this->evolutionApi->getConnectionState();
-        log_message('info', 'Status da conexão: ' . print_r($connection, true));
-
-        if (!$connection['success']) {
-            return [
-                'success' => false,
-                'error' => 'Instância não conectada: ' . ($connection['error'] ?? 'Verifique o QR Code')
-            ];
-        }
+        // Pula a verificação de connectionState e vai direto para os chats
+        log_message('info', 'Pulando verificação de conexão, indo direto para chats...');
 
         // Buscar chats
         log_message('info', 'Buscando chats...');
@@ -543,8 +538,17 @@ public function syncTest(): array
         $chats = $chatsResult['data'];
         log_message('info', 'Total de chats encontrados: ' . count($chats));
 
-        // Limitar para 3 chats para teste
-        $testChats = array_slice($chats, 0, 3);
+        if (empty($chats)) {
+            return [
+                'success' => true,
+                'message' => 'Nenhum chat encontrado para sincronizar',
+                'total_chats' => 0,
+                'synced' => 0
+            ];
+        }
+
+        // Limitar para 2 chats para teste
+        $testChats = array_slice($chats, 0, 2);
         $syncedCount = 0;
 
         foreach ($testChats as $index => $chat) {
@@ -558,8 +562,8 @@ public function syncTest(): array
 
             log_message('info', "Processando chat {$index}: {$numero}");
 
-            // Buscar apenas 2 mensagens de cada chat para teste
-            $messagesResult = $this->evolutionApi->getChatMessages($numero, 2);
+            // Buscar apenas 1 mensagem de cada chat para teste
+            $messagesResult = $this->evolutionApi->getChatMessages($numero, 1);
             
             if ($messagesResult['success'] && is_array($messagesResult['data'])) {
                 $messageCount = count($messagesResult['data']);
