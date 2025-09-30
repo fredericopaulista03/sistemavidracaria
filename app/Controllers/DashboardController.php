@@ -30,6 +30,6 @@ class DashboardController extends BaseController
             'ultimasMensagens' => $this->mensagemModel->orderBy('created_at', 'DESC')->findAll(5),
         ];
 
-        return view('dashboard/index', $data);
+        return view('admin/dashboard/index', $data);
     }
 }
