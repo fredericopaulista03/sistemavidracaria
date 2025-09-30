@@ -17,12 +17,12 @@ class UsuarioController extends BaseController
     public function index()
     {
         $data['usuarios'] = $this->usuarioModel->findAll();
-        return view('usuarios/index', $data);
+        return view('admin/usuarios/index', $data);
     }
 
     public function create()
     {
-        return view('usuarios/create');
+        return view('admin/usuarios/create');
     }
 
     public function store()
@@ -39,7 +39,7 @@ class UsuarioController extends BaseController
     public function edit($id)
     {
         $data['usuario'] = $this->usuarioModel->find($id);
-        return view('usuarios/edit', $data);
+        return view('admin/usuarios/edit', $data);
     }
 
     public function update($id)
