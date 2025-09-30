@@ -26,16 +26,16 @@ class VendaController extends BaseController
         return view('admin/vendas/create');
     }
 
-    public function store()
-    {
-        $venda = new Venda($this->request->getPost());
+   public function store()
+{
+    $data = $this->request->getPost();
 
-        if (!$this->vendaModel->save($venda)) {
-            return redirect()->back()->with('errors', $this->vendaModel->errors());
-        }
-
-        return redirect()->to('/vendas')->with('success', 'Venda registrada com sucesso.');
+    if (!$this->vendaModel->save($data)) {
+        return redirect()->back()->with('errors', $this->vendaModel->errors());
     }
+
+    return redirect()->to('/vendas')->with('success', 'Venda registrada com sucesso.');
+}
 
     public function delete($id)
     {

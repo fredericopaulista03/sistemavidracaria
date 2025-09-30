@@ -42,3 +42,10 @@ $routes->group('whatsapp', function($routes) {
     $routes->post('store', 'MensagemWhatsappController::store');
     $routes->get('reenviar', 'MensagemWhatsappController::reenviarPendentes');
 });
+
+$routes->get('clientes', 'ClienteController::index');
+$routes->get('clientes/create', 'ClienteController::create');
+$routes->post('clientes/store', 'ClienteController::store');
+$routes->get('clientes/edit/(:num)', 'ClienteController::edit/$1');
+$routes->post('clientes/update/(:num)', 'ClienteController::update/$1');
+$routes->get('clientes/delete/(:num)', 'ClienteController::delete/$1');
