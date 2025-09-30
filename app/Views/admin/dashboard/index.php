@@ -1,4 +1,4 @@
-<?= $this->extend('layout') ?>
+<?= $this->extend('admin/layout') ?>
 <?= $this->section('content') ?>
 
 <h2 class="mb-4">📊 Dashboard</h2>
