@@ -3,48 +3,24 @@
 namespace App\Controllers;
 
 use App\Models\MensagemWhatsappModel;
-use App\Entities\MensagemWhatsapp;
 
 class MensagemWhatsappController extends BaseController
 {
-    protected $mensagemModel;
+    protected $whatsappModel;
 
     public function __construct()
     {
-        $this->mensagemModel = new MensagemWhatsappModel();
+        $this->whatsappModel = new MensagemWhatsappModel();
     }
 
-    public function index()
+    public function conversas()
     {
-        $data['mensagens'] = $this->mensagemModel->findAll();
-        return view('whatsapp/index', $data);
-    }
+        $data = [
+            'totalConversas' => $this->whatsappModel->getTotalConversas(),
+            'conversasAtivas' => $this->whatsappModel->getConversasAtivas(),
+            'conversas' => $this->whatsappModel->getConversas()
+        ];
 
-    public function create()
-    {
-        return view('whatsapp/create');
-    }
-
-    public function store()
-    {
-        $mensagem = new MensagemWhatsapp($this->request->getPost());
-
-        if (!$this->mensagemModel->save($mensagem)) {
-            return redirect()->back()->with('errors', $this->mensagemModel->errors());
-        }
-
-        return redirect()->to('/whatsapp')->with('success', 'Mensagem registrada com sucesso.');
-    }
-
-    public function reenviarPendentes()
-    {
-        $pendentes = $this->mensagemModel->getPendentes();
-
-        foreach ($pendentes as $msg) {
-            // Aqui você poderia integrar com a API do WhatsApp
-            // Exemplo: chamar um service -> WhatsAppService::send($msg)
-        }
-
-        return redirect()->to('/whatsapp')->with('success', 'Mensagens reenviadas.');
+        return view('admin/whatsapp/conversas', $data);
     }
 }
