@@ -78,4 +78,52 @@ class MensagemWhatsappController extends BaseController
     
     return $this->response->setJSON($result);
 }
+
+/**
+ * Sincronização mínima para teste
+ */
+public function syncTest(): array
+{
+    try {
+        // Busca apenas os primeiros 5 chats
+        $chatsResult = $this->evolutionApi->getAllChats();
+        
+        if (!$chatsResult['success']) {
+            return $chatsResult;
+        }
+
+        $chats = array_slice($chatsResult['data'], 0, 5);
+        $syncedCount = 0;
+
+        foreach ($chats as $chat) {
+            $chatId = $chat['id'] ?? '';
+            $numero = $this->extractNumberFromChatId($chatId);
+            
+            if (!$numero) continue;
+
+            // Busca apenas as últimas 5 mensagens de cada chat
+            $messagesResult = $this->evolutionApi->getChatMessages($numero, 5);
+            
+            if ($messagesResult['success'] && is_array($messagesResult['data'])) {
+                foreach ($messagesResult['data'] as $message) {
+                    if ($this->syncMessage($message)) {
+                        $syncedCount++;
+                    }
+                }
+            }
+        }
+
+        return [
+            'success' => true,
+            'synced' => $syncedCount,
+            'message' => "Sincronização teste: {$syncedCount} mensagens de " . count($chats) . " chats"
+        ];
+
+    } catch (\Exception $e) {
+        return [
+            'success' => false,
+            'error' => $e->getMessage()
+        ];
+    }
+}
 }
