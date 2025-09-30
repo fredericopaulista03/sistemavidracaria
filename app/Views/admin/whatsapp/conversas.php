@@ -176,6 +176,7 @@ function selecionarConversa(numero) {
 
 // Função para carregar conversa
 // Função para carregar conversa - VERSÃO COM DEBUG
+// Função para carregar conversa - VERSÃO CORRIGIDA
 function carregarConversa(numero) {
     const areaConversa = document.getElementById('area-conversa');
     areaConversa.innerHTML = `
@@ -183,16 +184,14 @@ function carregarConversa(numero) {
             <div class="spinner-border text-primary mb-3" role="status">
                 <span class="visually-hidden">Carregando...</span>
             </div>
-            <p>Carregando conversa do número: ${numero}</p>
+            <p>Carregando conversa...</p>
         </div>
     `;
 
     const url = `<?= site_url('whatsapp/conversa/') ?>${encodeURIComponent(numero)}`;
-    console.log('URL da conversa:', url);
 
     fetch(url)
         .then(response => {
-            console.log('Status da resposta:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -202,8 +201,134 @@ function carregarConversa(numero) {
             console.log('Dados recebidos:', data);
 
             if (data.success && data.messages) {
-                if (data.messages.length > 0) {
-                    areaConversa.innerHTML = `
+                renderizarConversa(numero, data.messages);
+            } else {
+                throw new Error(data.error || 'Erro ao carregar conversa');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar conversa:', error);
+            areaConversa.innerHTML = `
+            <div class="text-center text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <p>Erro ao carregar conversa</p>
+                <small>${error.message}</small>
+            </div>
+        `;
+        });
+}
+
+// Função para renderizar a conversa
+function renderizarConversa(numero, messages) {
+    const areaConversa = document.getElementById('area-conversa');
+
+    if (messages.length === 0) {
+        areaConversa.innerHTML = `
+            <div class="conversa-detalhes">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>${numero}</h5>
+                    <span class="badge bg-secondary">Offline</span>
+                </div>
+                
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-comments fa-3x mb-3"></i>
+                    <p>Nenhuma mensagem nesta conversa</p>
+                    <small>Envie uma mensagem para iniciar a conversa</small>
+                </div>
+                
+                <div class="input-group mt-3">
+                    <input type="text" class="form-control" placeholder="Digite sua mensagem..." id="messageInput">
+                    <button class="btn btn-primary" type="button" onclick="enviarMensagem('${numero}')">
+                        <i class="fas fa-paper-plane"></i> Enviar
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const messagesHTML = messages.map(msg => {
+        const isFromMe = msg.from_me === true || msg.from_me === 1 || msg.direction === 'outgoing';
+        const date = formatDate(msg.created_at);
+
+        return `
+            <div class="message ${isFromMe ? 'my-message' : 'other-message'} mb-2">
+                <div class="card ${isFromMe ? 'bg-primary text-white' : 'bg-light'}">
+                    <div class="card-body p-2">
+                        <p class="card-text mb-1">${msg.mensagem}</p>
+                        <small class="${isFromMe ? 'text-white-50' : 'text-muted'}">
+                            ${date} ${isFromMe ? ' (Você)' : ''}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    areaConversa.innerHTML = `
+        <div class="conversa-detalhes">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>${messages[0].nome || numero}</h5>
+                <span class="badge bg-success">Online</span>
+            </div>
+            
+            <div class="mensagens-container" style="height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; background-color: #f8f9fa;">
+                ${messagesHTML}
+            </div>
+            
+            <div class="input-group mt-3">
+                <input type="text" class="form-control" placeholder="Digite sua mensagem..." id="messageInput">
+                <button class="btn btn-primary" type="button" onclick="enviarMensagem('${numero}')">
+                    <i class="fas fa-paper-plane"></i> Enviar
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Função para formatar data
+function formatDate(dateString) {
+    if (!dateString) return '';
+
+    try {
+        // Se for um objeto com propriedade date (do CodeIgniter)
+        if (typeof dateString === 'object' && dateString.date) {
+            dateString = dateString.date;
+        }
+
+        const date = new Date(dateString);
+        return date.toLocaleString('pt-BR');
+    } catch (e) {
+        return dateString;
+    }
+}
+const areaConversa = document.getElementById('area-conversa');
+areaConversa.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p>Carregando conversa do número: ${numero}</p>
+        </div>
+    `;
+
+const url = `<?= site_url('whatsapp/conversa/') ?>${encodeURIComponent(numero)}`;
+console.log('URL da conversa:', url);
+
+fetch(url)
+    .then(response => {
+        console.log('Status da resposta:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Dados recebidos:', data);
+
+        if (data.success && data.messages) {
+            if (data.messages.length > 0) {
+                areaConversa.innerHTML = `
                     <div class="conversa-detalhes">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5>${data.messages[0].nome || numero}</h5>
@@ -234,8 +359,8 @@ function carregarConversa(numero) {
                         </div>
                     </div>
                 `;
-                } else {
-                    areaConversa.innerHTML = `
+            } else {
+                areaConversa.innerHTML = `
                     <div class="conversa-detalhes">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5>${numero}</h5>
@@ -256,20 +381,20 @@ function carregarConversa(numero) {
                         </div>
                     </div>
                 `;
-                }
-            } else {
-                areaConversa.innerHTML = `
+            }
+        } else {
+            areaConversa.innerHTML = `
                 <div class="text-center text-danger">
                     <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
                     <p>Erro ao carregar conversa</p>
                     <small>${data.error || 'Erro desconhecido'}</small>
                 </div>
             `;
-            }
-        })
-        .catch(error => {
-            console.error('Erro detalhado ao carregar conversa:', error);
-            areaConversa.innerHTML = `
+        }
+    })
+    .catch(error => {
+        console.error('Erro detalhado ao carregar conversa:', error);
+        areaConversa.innerHTML = `
             <div class="text-center text-danger">
                 <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
                 <p>Erro ao carregar conversa</p>
@@ -278,7 +403,7 @@ function carregarConversa(numero) {
                 <small>Verifique o console para mais detalhes (F12)</small>
             </div>
         `;
-        });
+    });
 }
 // Função para enviar mensagem
 function enviarMensagem(numero) {

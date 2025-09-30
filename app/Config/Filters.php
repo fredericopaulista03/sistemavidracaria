@@ -36,6 +36,7 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
          'auth'       => \App\Filters\AuthFilter::class,
         'access'     => \App\Filters\AccessLevelFilter::class,
+        'cors' => \App\Filters\CorsFilter::class,
     ];
 
     /**
@@ -77,6 +78,7 @@ class Filters extends BaseFilters
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
+            'cors',
         ],
         'after' => [
             // 'honeypot',

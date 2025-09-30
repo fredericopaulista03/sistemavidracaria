@@ -118,6 +118,9 @@ class MensagemWhatsappController extends BaseController
     /**
  * Buscar mensagens de uma conversa
  */
+/**
+ * Buscar mensagens de uma conversa
+ */
 public function getConversa($numero)
 {
     try {
@@ -125,10 +128,31 @@ public function getConversa($numero)
                                         ->orderBy('created_at', 'ASC')
                                         ->findAll();
 
+        // Converter as mensagens para array simples
+        $mensagensArray = [];
+        foreach ($mensagens as $msg) {
+            $mensagensArray[] = [
+                'id' => $msg->id,
+                'numero' => $msg->numero,
+                'mensagem' => $msg->mensagem,
+                'status' => $msg->status,
+                'provider_message_id' => $msg->provider_message_id,
+                'sent_at' => $msg->sent_at,
+                'received_at' => $msg->received_at,
+                'type' => $msg->type,
+                'from_me' => (bool)$msg->from_me,
+                'chat_id' => $msg->chat_id,
+                'direction' => $msg->direction,
+                'created_at' => $msg->created_at,
+                'updated_at' => $msg->updated_at,
+                'nome' => $this->formatarNome($msg->numero)
+            ];
+        }
+
         return $this->response->setJSON([
             'success' => true,
-            'messages' => $mensagens,
-            'total' => count($mensagens)
+            'messages' => $mensagensArray,
+            'total' => count($mensagensArray)
         ]);
         
     } catch (\Exception $e) {
@@ -138,6 +162,22 @@ public function getConversa($numero)
             'error' => 'Erro interno ao carregar conversa'
         ]);
     }
+}
+
+/**
+ * Formatar nome do contato
+ */
+private function formatarNome(string $numero): string
+{
+    $numeroLimpo = preg_replace('/\D/', '', $numero);
+    
+    if (strlen($numeroLimpo) === 11) {
+        return 'Contato (' . substr($numeroLimpo, 0, 2) . ') ' . 
+               substr($numeroLimpo, 2, 5) . '-' . 
+               substr($numeroLimpo, 7);
+    }
+    
+    return 'Contato ' . $numeroLimpo;
 }
 
     // No WhatsappWebhookController, adicione estes métodos:
