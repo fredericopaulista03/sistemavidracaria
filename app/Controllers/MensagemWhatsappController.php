@@ -116,19 +116,29 @@ class MensagemWhatsappController extends BaseController
     }
 
     /**
-     * Buscar mensagens de uma conversa
-     */
-    public function getConversa($numero)
-    {
+ * Buscar mensagens de uma conversa
+ */
+public function getConversa($numero)
+{
+    try {
         $mensagens = $this->whatsappModel->where('numero', $numero)
                                         ->orderBy('created_at', 'ASC')
                                         ->findAll();
 
         return $this->response->setJSON([
             'success' => true,
-            'messages' => $mensagens
+            'messages' => $mensagens,
+            'total' => count($mensagens)
+        ]);
+        
+    } catch (\Exception $e) {
+        log_message('error', 'Erro ao buscar conversa: ' . $e->getMessage());
+        return $this->response->setJSON([
+            'success' => false,
+            'error' => 'Erro interno ao carregar conversa'
         ]);
     }
+}v
 
     // No WhatsappWebhookController, adicione estes métodos:
 
