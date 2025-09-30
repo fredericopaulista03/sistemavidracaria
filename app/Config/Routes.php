@@ -43,6 +43,8 @@ $routes->post('whatsapp/webhook/send', 'WhatsappWebhookController::send');
 $routes->get('whatsapp', 'MensagemWhatsappController::conversas');
 $routes->get('whatsapp/conversas', 'MensagemWhatsappController::conversas');
 $routes->get('whatsapp/conversa/(:alphanum)', 'MensagemWhatsappController::getConversa/$1');
+$routes->get('whatsapp/test/manual', 'MensagemWhatsappController::testManual');
+
 
 $routes->get('clientes', 'ClienteController::index');
 $routes->get('clientes/create', 'ClienteController::create');
