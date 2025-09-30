@@ -1,0 +1,44 @@
+<?php
+
+use CodeIgniter\Router\RouteCollection;
+
+/**
+ * @var RouteCollection $routes
+ */
+$routes->get('/', 'DashboardController::index');
+
+
+
+// Usuários
+$routes->group('usuarios', function($routes) {
+    $routes->get('/', 'UsuarioController::index');
+    $routes->get('create', 'UsuarioController::create');
+    $routes->post('store', 'UsuarioController::store');
+    $routes->get('edit/(:num)', 'UsuarioController::edit/$1');
+    $routes->post('update/(:num)', 'UsuarioController::update/$1');
+    $routes->get('delete/(:num)', 'UsuarioController::delete/$1');
+});
+
+// Financeiro
+$routes->group('financeiro', function($routes) {
+    $routes->get('/', 'FinanceiroController::index');
+    $routes->get('create', 'FinanceiroController::create');
+    $routes->post('store', 'FinanceiroController::store');
+    $routes->get('delete/(:num)', 'FinanceiroController::delete/$1');
+});
+
+// Vendas
+$routes->group('vendas', function($routes) {
+    $routes->get('/', 'VendaController::index');
+    $routes->get('create', 'VendaController::create');
+    $routes->post('store', 'VendaController::store');
+    $routes->get('delete/(:num)', 'VendaController::delete/$1');
+});
+
+// WhatsApp
+$routes->group('whatsapp', function($routes) {
+    $routes->get('/', 'MensagemWhatsappController::index');
+    $routes->get('create', 'MensagemWhatsappController::create');
+    $routes->post('store', 'MensagemWhatsappController::store');
+    $routes->get('reenviar', 'MensagemWhatsappController::reenviarPendentes');
+});

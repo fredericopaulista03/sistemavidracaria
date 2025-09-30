@@ -1,0 +1,18 @@
+<IfModule mod_php7.c>
+    php_flag zlib.output_compression Off
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_flag zlib.output_compression Off
+</IfModule>
+RewriteEngine On
+
+# Se a requisição já é para um arquivo existente (arquivo, link simbólico ou diretório)
+RewriteCond %{REQUEST_FILENAME} -s [OR]
+RewriteCond %{REQUEST_FILENAME} -l [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^.*$ - [NC,L]
+
+# Redireciona todas as requisições para o index.php na pasta public
+RewriteRule ^(.*)$ public/index.php [NC,L,QSA]
+
