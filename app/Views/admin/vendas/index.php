@@ -20,12 +20,12 @@
         <?php if (!empty($vendas)): ?>
         <?php foreach ($vendas as $venda): ?>
         <tr>
-            <td><?= $venda['id'] ?></td>
-            <td><?= esc($venda['cliente_nome']) ?></td>
-            <td><?= esc($venda['produto']) ?></td>
-            <td>R$ <?= number_format($venda['valor'], 2, ',', '.') ?></td>
-            <td><?= ucfirst($venda['status']) ?></td>
-            <td><?= date('d/m/Y H:i', strtotime($venda['created_at'])) ?></td>
+            <td><?= $venda->id ?></td>
+            <td><?= esc($venda->cliente_nome ?? '') ?></td>
+            <td><?= esc($venda->produto) ?></td>
+            <td>R$ <?= number_format($venda->valor, 2, ',', '.') ?></td>
+            <td><?= ucfirst($venda->status) ?></td>
+            <td><?= date('d/m/Y H:i', strtotime($venda->created_at)) ?></td>
         </tr>
         <?php endforeach; ?>
         <?php else: ?>
