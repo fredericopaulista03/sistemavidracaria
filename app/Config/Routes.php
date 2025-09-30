@@ -35,7 +35,9 @@ $routes->group('vendas', function($routes) {
     $routes->get('delete/(:num)', 'VendaController::delete/$1');
 });
 
+
 // WhatsApp
+$routes->get('whatsapp', 'MensagemWhatsappController::conversas');
 $routes->get('whatsapp/conversas', 'MensagemWhatsappController::conversas');
 $routes->get('whatsapp/conversa/(:num)', 'MensagemWhatsappController::getConversa/$1');
 $routes->post('whatsapp/send', 'MensagemWhatsappController::sendMessage');
