@@ -33,10 +33,10 @@ class FinanceiroModel extends Model
      * Totalizar entradas/saídas
      */
     public function getResumo(): array
-    {
-        return [
-            'entradas' => $this->where('tipo', 'entrada')->selectSum('valor')->first()['valor'] ?? 0,
-            'saidas'   => $this->where('tipo', 'saida')->selectSum('valor')->first()['valor'] ?? 0,
-        ];
-    }
+{
+    return [
+        'entradas' => $this->where('tipo', 'entrada')->selectSum('valor')->first()->valor ?? 0,
+        'saidas'   => $this->where('tipo', 'saida')->selectSum('valor')->first()->valor ?? 0,
+    ];
+}
 }
