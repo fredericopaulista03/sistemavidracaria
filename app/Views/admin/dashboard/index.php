@@ -30,6 +30,28 @@
     </div>
 </div>
 
+<div class="row mb-4">
+    <!-- Gráfico Vendas -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Vendas por Status</div>
+            <div class="card-body">
+                <canvas id="chartVendas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico Financeiro -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Financeiro (Entradas x Saídas)</div>
+            <div class="card-body">
+                <canvas id="chartFinanceiro"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <!-- Últimas Vendas -->
     <div class="col-md-4">
@@ -91,5 +113,37 @@
         </div>
     </div>
 </div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gráfico de Vendas
+const ctxVendas = document.getElementById('chartVendas');
+new Chart(ctxVendas, {
+    type: 'bar',
+    data: {
+        labels: <?= $vendasLabels ?>,
+        datasets: [{
+            label: 'Vendas',
+            data: <?= $vendasValues ?>,
+            backgroundColor: ['#0d6efd', '#198754', '#dc3545']
+        }]
+    }
+});
+
+// Gráfico Financeiro
+const ctxFinanceiro = document.getElementById('chartFinanceiro');
+new Chart(ctxFinanceiro, {
+    type: 'pie',
+    data: {
+        labels: <?= $financeiroLabels ?>,
+        datasets: [{
+            label: 'Financeiro',
+            data: <?= $financeiroValues ?>,
+            backgroundColor: ['#198754', '#dc3545']
+        }]
+    }
+});
+</script>
 
 <?= $this->endSection() ?>
