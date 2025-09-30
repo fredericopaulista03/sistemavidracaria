@@ -37,7 +37,7 @@ $routes->group('vendas', function($routes) {
 
 // WhatsApp
 $routes->group('whatsapp', function($routes) {
-    $routes->get('/', 'MensagemWhatsappController::index');
+    $routes->get('/', 'MensagemWhatsappController::conversas');
     $routes->get('create', 'MensagemWhatsappController::create');
     $routes->post('store', 'MensagemWhatsappController::store');
     $routes->get('reenviar', 'MensagemWhatsappController::reenviarPendentes');
