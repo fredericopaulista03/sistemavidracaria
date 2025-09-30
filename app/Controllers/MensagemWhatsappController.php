@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\MensagemWhatsappModel;
 
-class MensagemWhatsappController extends BaseController
+class WhatsappController extends BaseController
 {
     protected $whatsappModel;
 
@@ -22,5 +22,11 @@ class MensagemWhatsappController extends BaseController
         ];
 
         return view('admin/whatsapp/conversas', $data);
+    }
+
+    public function getConversa($numero)
+    {
+        $mensagens = $this->whatsappModel->getConversaByNumero($numero);
+        return $this->response->setJSON($mensagens);
     }
 }
